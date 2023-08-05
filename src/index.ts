@@ -8,11 +8,9 @@ require('dotenv').config()
 
 
 AppDataSource.initialize().then(async () => {
-
     // create express app
     const app = express()
 
-    
     app.use(express.urlencoded({ extended: true }))
     app.use(cors())
     

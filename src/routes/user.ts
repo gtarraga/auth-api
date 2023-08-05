@@ -28,7 +28,7 @@ router.post(
 
 //Edit one user
 router.patch(
-  "/:id",
+  "/:email",
   [checkJwt],
   UserController.editUser
 );

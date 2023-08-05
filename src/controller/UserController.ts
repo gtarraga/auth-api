@@ -51,7 +51,8 @@ export class UserController {
         }
 
         // Hash the pw to store securely
-        user.hashPassword();
+        // The hashing has been disabled for this test version to make easier creating the initial user.
+        // user.hashPassword();
 
         // Try to save if it fails the profile already exists
         try {
@@ -68,14 +69,14 @@ export class UserController {
     static editUser = async (request: Request, response: Response, next: NextFunction) => {
         const userRepository = AppDataSource.getRepository(User)
         //Get the ID from the url
-        const id = request.params.id;
+        const email = request.params.email;
 
-        const { email, firstName } = request.body;
+        const { newEmail, firstName } = request.body;
 
         // Find user on the DB
         let user;
         try{
-            user = await userRepository.findOneBy({ id })
+            user = await userRepository.findOneBy({ email })
         } catch (e) {
             response.status(404).send("User not found");
             return;
@@ -83,7 +84,7 @@ export class UserController {
 
 
         // Validate new information, use existing values if undefined
-        user.email = email || user.email;
+        user.email = newEmail || user.email;
         user.firstName = firstName || user.firstName;
         const errors = await validate(user);
         if(errors.length > 0) {

@@ -24,11 +24,12 @@ class AuthController {
       return;
     }
 
+    // The hashing has been disabled for this test version to make easier creating the initial user.
     //Check if encrypted password match
-    if (!user.checkIfUnencryptedPasswordIsValid(password)) {
-      res.status(401).send();
-      return;
-    }
+    // if (!user.checkIfUnencryptedPasswordIsValid(password)) {
+    //   res.status(401).send();
+    //   return;
+    // }
 
     //Sign JWT, valid for 1 hour
     const token = jwt.sign(
