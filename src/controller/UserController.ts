@@ -54,11 +54,18 @@ export class UserController {
         // The hashing has been disabled for this test version to make easier creating the initial user.
         // user.hashPassword();
 
-        // Try to save if it fails the profile already exists
+        // Try to save if it fails the email already exists
+        const existingUser = await userRepository.findOneBy({ email });
+        if(existingUser) {
+            response.status(409).send("This profile already exists");
+            return;
+        }
+
+        // Try to save
         try {
             await userRepository.save(user);
         } catch (e) {
-            response.status(409).send("This profile already exists");
+            response.status(409).send();
             return;
         }
 
@@ -69,23 +76,32 @@ export class UserController {
     static editUser = async (request: Request, response: Response, next: NextFunction) => {
         const userRepository = AppDataSource.getRepository(User)
         //Get the ID from the url
-        const email = request.params.email;
+        const id = request.params.id;
 
-        const { newEmail, firstName } = request.body;
+        const { email, firstName, password } = request.body;
 
         // Find user on the DB
-        let user;
-        try{
-            user = await userRepository.findOneBy({ email })
-        } catch (e) {
-            response.status(404).send("User not found");
+        const user = await userRepository.findOneBy({ id })
+        if (!user) {
+            response.status(404).send("This user not exist");
             return;
         }
 
+        // Check if the new email is being used by another user
+        if (email && email !== user.email) {
+            const existingUserWithEmail = await userRepository.findOneBy({ email });
+            if (existingUserWithEmail) {
+                response.status(409).send("Email already in use");
+                return;
+            }
+        }
+    
+
 
         // Validate new information, use existing values if undefined
-        user.email = newEmail || user.email;
+        user.email = email || user.email;
         user.firstName = firstName || user.firstName;
+        user.password = password || user.password;
         const errors = await validate(user);
         if(errors.length > 0) {
             response.status(400).send(errors);
