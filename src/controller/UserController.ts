@@ -1,53 +1,123 @@
-import { AppDataSource } from "../data-source"
-import { NextFunction, Request, Response } from "express"
-import { User } from "../entity/User"
+import { AppDataSource } from "../data-source";
+import { NextFunction, Request, Response } from "express";
+import { User } from "../entity/User";
+import { validate } from "class-validator";
 
 export class UserController {
 
-    private userRepository = AppDataSource.getRepository(User)
-
-    async all(request: Request, response: Response, next: NextFunction) {
-        return this.userRepository.find()
+    static listAll = async (request: Request, response: Response, next: NextFunction) => {
+        const userRepository = AppDataSource.getRepository(User);
+        
+        return response.json(await userRepository.find());
     }
 
-    async one(request: Request, response: Response, next: NextFunction) {
-        const id = parseInt(request.params.id)
+    static getOne = async (request: Request, response: Response, next: NextFunction) => {
+        const userRepository = AppDataSource.getRepository(User)
+        const email = request.params.email
 
-
-        const user = await this.userRepository.findOne({
-            where: { id }
-        })
-
+        const user = await userRepository.findOneBy({ email })
+        
         if (!user) {
-            return "unregistered user"
+            response.status(404).send("This user not exist");
+            return;
         }
-        return user
+        return response.json(user);
     }
 
-    async save(request: Request, response: Response, next: NextFunction) {
-        const { firstName, lastName, age } = request.body;
+    static newUser = async (request: Request, response: Response, next: NextFunction) => {
+        const userRepository = AppDataSource.getRepository(User)
+        // Get params from the body
+        const { email, firstName, password } = request.body;
+        
 
+        // Check if theres any error with the params
+        if(!(email && password && firstName)) {
+            response.status(400).send("There's an error with the parameters sent");
+            return;
+        }
+        
+        
         const user = Object.assign(new User(), {
+            email,
             firstName,
-            lastName,
-            age
+            password
         })
 
-        return this.userRepository.save(user)
+        // Validate if the params are ok
+        const errors = await validate(user);
+        if(errors.length > 0) {
+            response.status(400).send(errors);
+            return;
+        }
+
+        // Hash the pw to store securely
+        user.hashPassword();
+
+        // Try to save if it fails the profile already exists
+        try {
+            await userRepository.save(user);
+        } catch (e) {
+            response.status(409).send("This profile already exists");
+            return;
+        }
+
+        // Send 201 if all is ok
+        response.status(201).send("User created");
     }
 
-    async remove(request: Request, response: Response, next: NextFunction) {
-        const id = parseInt(request.params.id)
+    static editUser = async (request: Request, response: Response, next: NextFunction) => {
+        const userRepository = AppDataSource.getRepository(User)
+        //Get the ID from the url
+        const id = request.params.id;
 
-        let userToRemove = await this.userRepository.findOneBy({ id })
+        const { email, firstName } = request.body;
+
+        // Find user on the DB
+        let user;
+        try{
+            user = await userRepository.findOneBy({ id })
+        } catch (e) {
+            response.status(404).send("User not found");
+            return;
+        }
+
+
+        // Validate new information, use existing values if undefined
+        user.email = email || user.email;
+        user.firstName = firstName || user.firstName;
+        const errors = await validate(user);
+        if(errors.length > 0) {
+            response.status(400).send(errors);
+            return;
+        }
+
+        // Try to save, if it fails, email is already in use
+        try {
+            await userRepository.save(user);
+        } catch (e) {
+            response.status(409).send("Email already in use");
+            return;
+        }
+
+        response.status(204).send();
+
+    }
+
+
+    static deleteUser = async (request: Request, response: Response, next: NextFunction) => {
+        const userRepository = AppDataSource.getRepository(User)
+        const email = request.params.email
+
+        let userToRemove = await userRepository.findOneBy({ email })
 
         if (!userToRemove) {
-            return "this user not exist"
+            response.status(404).send("User not found");
+            return;
         }
 
-        await this.userRepository.remove(userToRemove)
+        await userRepository.remove(userToRemove)
 
-        return "user has been removed"
+        return response.status(204).send("User has been removed")
     }
 
 }
