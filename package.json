@@ -1,5 +1,5 @@
 {
-   "name": ".",
+   "name": "api-pafin",
    "version": "0.0.1",
    "description": "Awesome project developed with TypeORM.",
    "type": "commonjs",
@@ -10,22 +10,25 @@
    },
    "dependencies": {
       "@types/bcryptjs": "^2.4.2",
+      "@types/body-parser": "^1.19.2",
       "@types/cors": "^2.8.13",
       "@types/helmet": "^4.0.0",
       "@types/jsonwebtoken": "^9.0.2",
       "bcryptjs": "^2.4.3",
-      "body-parser": "^1.19.1",
       "class-validator": "^0.14.0",
       "cors": "^2.8.5",
       "dotenv": "^16.3.1",
-      "express": "^4.17.2",
+      "express": "^4.18.2",
       "jsonwebtoken": "^9.0.1",
+      "pg": "^8.11.2",
       "reflect-metadata": "^0.1.13",
       "ts-node-dev": "^2.0.0",
       "typeorm": "0.3.17"
    },
    "scripts": {
-      "start": "ts-node src/index.ts",
-      "typeorm": "typeorm-ts-node-commonjs"
+      "tsc": "tsc",
+      "start": "set debug=* && ts-node-dev --respawn ./src/index.ts",
+      "prod": "tsc && node ./build/app.js",
+      "migration:run": "ts-node ./node_modules/typeorm/cli.js migration:run"
    }
 }
